@@ -1,0 +1,245 @@
+<!-- MAPBOX GL JS CSS & JS -->
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.11.0/mapbox-gl.css" rel="stylesheet" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.11.0/mapbox-gl.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+<style>
+body { margin: 0; padding: 0; }
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+.pin-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.pin-marker .pin-title {
+  background: rgba(255,255,255,0.9);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  margin-bottom: 4px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+.pin-marker .pin-line {
+  width: 2px;
+  background: #B0425B;
+  flex-grow: 1;
+}
+.pin-marker .pin-dot {
+  width: 8px;
+  height: 8px;
+  background: #B0425B;
+  border-radius: 50%;
+  margin-top: -1px;
+}
+</style>
+<!-- MAP CONTAINER -->
+<div id="map" style="height: 600px; position: relative;"></div>
+
+<script>
+  mapboxgl.accessToken = 'pk.eyJ1IjoibXllcnNwYXJrcHJlcyIsImEiOiJjbTljdmNpZWUwdnUxMnNvcWRhNmltbHFmIn0.7VaZuGOoThzvnc7isbi4Dw';
+
+  // Initialize map with performance optimizations
+  const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/myersparkpres/cm9d35oki00c501r3b1xtblbs',
+    center: [-80.826542, 35.193527],
+    zoom: 18,
+    pitch: 60,
+    bearing: -50,
+    minZoom: 15,
+    maxZoom: 19,
+    antialias: true, // Smoother rendering
+    optimizeForTerrain: false // Disable if not using terrain
+  });
+
+  // Zoom + Compass control
+  map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
+
+  map.on('style.load', () => {
+    // CLIP MASK: Remove basemap 3D buildings in campus areas
+    // This hides Mapbox's low-poly church model so only YOUR model shows
+    map.addSource('eraser', {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: [
+          // Main campus footprint
+          { type:'Feature', properties:{}, geometry:{
+            type:'Polygon',
+            coordinates:[[
+              [-80.8262081063216,35.194334712686214],
+              [-80.82682361822127,35.19407268566525],
+              [-80.82692668067862,35.193948690441545],
+              [-80.82706409728915,35.19356500590723],
+              [-80.82707268582746,35.1934831217782],
+              [-80.82710990282574,35.19340825621673],
+              [-80.8270984514416,35.19329829729806],
+              [-80.82717002259233,35.19312049107174],
+              [-80.82713280559402,35.193066681216095],
+              [-80.82694672060104,35.19303392737322],
+              [-80.82686656091202,35.19307603945437],
+              [-80.82680071545298,35.19322109201056],
+              [-80.82668620161148,35.193342748793825],
+              [-80.82673486999393,35.1934339912614],
+              [-80.82665184745831,35.19342463306435],
+              [-80.82645144823533,35.19312049107174],
+              [-80.82623959762817,35.19321641290021],
+              [-80.82642281977532,35.19351119634598],
+              [-80.82635983716214,35.19356032681665],
+              [-80.82618234070745,35.19360945725707],
+              [-80.82608214109598,35.19362583406411],
+              [-80.82599625571449,35.19365858766838],
+              [-80.82598480433033,35.193728773917684],
+              [-80.82606782686598,35.193859788088744],
+              [-80.8260850039418,35.1938808439177],
+              [-80.82639705416042,35.19376386701994],
+              [-80.82651156800264,35.19394635090673],
+              [-80.8260706897118,35.19414053202884],
+              [-80.826162300785,35.194299619831156],
+              [-80.8262081063216,35.194334712686214]
+            ]]
+          }},
+          // North wing
+          { type:'Feature', properties:{}, geometry:{
+            type:'Polygon',
+            coordinates:[[
+              [-80.82776570576745,35.19363778899168],
+              [-80.8278133517823,35.19350713446808],
+              [-80.82766088453579,35.193458679757626],
+              [-80.82760159171792,35.19360923537158],
+              [-80.82776570576745,35.19363778899168]
+            ]]
+          }},
+          // West detached building
+          { type:'Feature', properties:{}, geometry:{
+            type:'Polygon',
+            coordinates:[[
+              [-80.8246995101817,35.193796435963364],
+              [-80.82466263585667,35.19370402507637],
+              [-80.82492813099634,35.19359554259671],
+              [-80.82477080054294,35.19338862190962],
+              [-80.8246577192797,35.193450899064956],
+              [-80.82447580594341,35.19324397801],
+              [-80.8240677300806,35.193450899064956],
+              [-80.82424472684059,35.19367590000276],
+              [-80.82429880918339,35.19365581065897],
+              [-80.82442172359994,35.1938185342034],
+              [-80.82454709630528,35.19377232878564],
+              [-80.82460609522505,35.19383661457695],
+              [-80.8246995101817,35.193796435963364]
+            ]]
+          }},
+          // Small courtyard inset
+          { type:'Feature', properties:{}, geometry:{
+            type:'Polygon',
+            coordinates:[[
+              [-80.82615363454697,35.19334792040087],
+              [-80.82619414583006,35.193413132792514],
+              [-80.82627574016657,35.193407109029096],
+              [-80.82627594863331,35.193327456035746],
+              [-80.82621791666038,35.193282795083405],
+              [-80.82614788698079,35.193290305782526],
+              [-80.82615363454697,35.19334792040087]
+            ]]
+          }}
+        ]
+      }
+    });
+
+    map.addLayer({
+      id: 'eraser',
+      type: 'clip',
+      source: 'eraser',
+      layout: {
+        'clip-layer-types': ['model'],
+        'clip-layer-scope': ['basemap']
+      }
+    });
+
+    // REMOVED FOG - Major performance improvement
+    // If you want fog back, use simplified version:
+    // map.setFog({ range: [0.8, 8], color: 'white' });
+
+    // Add 3D model with OPTIMIZED settings
+    map.addSource('model', {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        properties: { 'model-uri': 'https://mppccommunications.github.io/mapbox/models/mppc-micro2.glb' },
+        geometry: { type: 'Point', coordinates: [-80.826542, 35.193527] }
+      }
+    });
+
+    map.addLayer({
+      id: 'church',
+      type: 'model',
+      slot: 'middle',
+      source: 'model',
+      minzoom: 15,
+      layout: { 'model-id': ['get','model-uri'] },
+      paint: {
+        'model-opacity': 1,
+        // Scaled down to compensate for baked transforms (was -0.03 before)
+        'model-scale': [0.03, 0.03, 0.03],
+        // 90° pitch converts Y-up to Z-up for Mapbox coordinate system
+        'model-rotation': [90, 0, 18],
+        'model-translation': [-35, -20, 0],
+        'model-emissive-strength': 0.2,
+        // Color matching for visual consistency with surroundings
+        'model-color': '#f5e0c3',
+        'model-color-mix-intensity': 0.3
+        // REMOVED for performance: ambient-intensity, roughness, metallic
+      }
+    });
+
+    // Load markers
+    loadSheetMarkersFromCSV();
+  });
+
+  // CSV → Markers with simple caching
+  let markersCache = null;
+
+  async function loadSheetMarkersFromCSV() {
+    // Simple cache to avoid reloading on map interactions
+    if (markersCache) return;
+
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ03YDwpU889MGqcFP-YsYnQ3qqiPHa9rgR2yfecWSPAzh1-3BCis4k4Oec_1gDOoq1ESShN5MMcpUE/pub?output=csv';
+
+    Papa.parse(csvUrl, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: results => {
+        markersCache = results.data; // Cache the data
+
+        results.data.forEach(row => {
+          const lon = parseFloat(row.longitude);
+          const lat = parseFloat(row.latitude);
+          if (isNaN(lon) || isNaN(lat)) return;
+
+          const floor = parseInt(row.floor) || 0;
+          const yOffset = -(floor * 20);
+
+          const el = document.createElement('div');
+          el.className = 'pin-marker';
+          el.innerHTML = `
+            <div class="pin-title">${row.title}</div>
+            <div class="pin-line"></div>
+            <div class="pin-dot"></div>
+          `;
+
+          const popup = new mapboxgl.Popup({ offset: 25 })
+            .setHTML(`<h3>${row.title}</h3><p>${row.description}</p>`);
+
+          new mapboxgl.Marker({ element: el, offset: [0, yOffset] })
+            .setLngLat([lon, lat])
+            .setPopup(popup)
+            .addTo(map);
+        });
+      },
+      error: err => console.error('PapaParse error:', err)
+    });
+  }
+</script>
